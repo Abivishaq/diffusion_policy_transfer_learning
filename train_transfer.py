@@ -30,6 +30,7 @@ from diffusion_policy.conditional_unet1d import ConditionalUnet1D
 from dataclasses import dataclass, field
 from typing import Optional, List
 import tyro
+from get_ckpt_pth import get_ckpt_pth
 
 @dataclass
 class Args:
@@ -360,7 +361,12 @@ if __name__ == "__main__":
     ema_agent = Agent(envs, args).to(device)
 
     ## laod checkpoint
-    ckpt_pth = '/home/abivishaq/projects/GT_coursework/fall_2024/DL/ManiSkill/examples/baselines/diffusion_policy/runs/PickCube-v1__train__1__1732827903/checkpoints/best_eval_success_at_end.pt'
+    # ckpt_pth = '/home/abivishaq/projects/GT_coursework/fall_2024/DL/ManiSkill/examples/baselines/diffusion_policy/runs/PickCube-v1__train__1__1732827903/checkpoints/best_eval_success_at_end.pt'
+    ckpt_pth = get_ckpt_pth(args.num_demos)
+    print("####################")
+    print(ckpt_pth)
+    print("num_demos: ", args.num_demos)
+    print("####################")
     ckpt = torch.load(ckpt_pth)
     agent.load_state_dict(ckpt['agent'])
     ema_agent.load_state_dict(ckpt['ema_agent'])
