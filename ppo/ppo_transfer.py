@@ -136,7 +136,8 @@ class Agent(nn.Module):
         self.target_obs_dim = 42  # The larger dimension we're padding to
         self.actual_obs_dim = np.array(envs.single_observation_space.shape).prod()
         self.critic = nn.Sequential(
-            layer_init(nn.Linear(np.array(envs.single_observation_space.shape).prod(), 256)),
+            #layer_init(nn.Linear(np.array(envs.single_observation_space.shape).prod(), 256)),
+            layer_init(nn.Linear(self.target_obs_dim, 256)),  # Using target_obs_dim here
             nn.Tanh(),
             layer_init(nn.Linear(256, 256)),
             nn.Tanh(),
@@ -145,7 +146,8 @@ class Agent(nn.Module):
             layer_init(nn.Linear(256, 1)),
         )
         self.actor_mean = nn.Sequential(
-            layer_init(nn.Linear(np.array(envs.single_observation_space.shape).prod(), 256)),
+            #layer_init(nn.Linear(np.array(envs.single_observation_space.shape).prod(), 256)),
+            layer_init(nn.Linear(self.target_obs_dim, 256)),  # Using target_obs_dim here
             nn.Tanh(),
             layer_init(nn.Linear(256, 256)),
             nn.Tanh(),
@@ -156,13 +158,12 @@ class Agent(nn.Module):
         self.actor_logstd = nn.Parameter(torch.ones(1, np.prod(envs.single_action_space.shape)) * -0.5)
 
     def _pad_obs(self, x):
-        if self.actual_obs_dim < self.target_obs_dim:
-            # Add padding to match target dimension
+         if self.actual_obs_dim < self.target_obs_dim:
+            # Pad the observation to match target dimension
+            padding_size = (0, self.target_obs_dim - self.actual_obs_dim)
             if len(x.shape) == 2:  # Batch of observations
-                padding_size = (0, self.target_obs_dim - self.actual_obs_dim)
                 x = F.pad(x, padding_size, value=0)
             elif len(x.shape) == 1:  # Single observation
-                padding_size = (0, self.target_obs_dim - self.actual_obs_dim)
                 x = F.pad(x.unsqueeze(0), padding_size, value=0).squeeze(0)
         return x
     def get_value(self, x):
