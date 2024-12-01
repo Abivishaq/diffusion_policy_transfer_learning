@@ -276,13 +276,7 @@ if __name__ == "__main__":
     else:
         run_name = args.exp_name
 
-    details = ''
-    details += f'dataset_size:{args.num_demos}\n'
-    details += f'weights:random\n'
-    details += f'task:{args.env_id}\n'
-    details += f'seed:{args.seed}'
-    with open(f'runs/{run_name}/exp_details.txt', 'w') as f:
-        f.write(details)
+    
     
 
     if args.demo_path.endswith('.h5'):
@@ -348,6 +342,14 @@ if __name__ == "__main__":
     )
     if args.num_demos is None:
         args.num_demos = len(dataset)
+
+    details = ''
+    details += f'dataset_size:{args.num_demos}\n'
+    details += f'weights:random\n'
+    details += f'task:{args.env_id}\n'
+    details += f'seed:{args.seed}'
+    with open(f'runs/{run_name}/exp_details.txt', 'w') as f:
+        f.write(details)
 
     # agent setup
     agent = Agent(envs, args).to(device)
