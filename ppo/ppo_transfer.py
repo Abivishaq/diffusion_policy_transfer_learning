@@ -133,6 +133,8 @@ def layer_init(layer, std=np.sqrt(2), bias_const=0.0):
 class Agent(nn.Module):
     def __init__(self, envs):
         super().__init__()
+        self.target_obs_dim = 42  # The larger dimension we're padding to
+        self.actual_obs_dim = np.array(envs.single_observation_space.shape).prod()
         self.critic = nn.Sequential(
             layer_init(nn.Linear(np.array(envs.single_observation_space.shape).prod(), 256)),
             nn.Tanh(),
@@ -153,9 +155,21 @@ class Agent(nn.Module):
         )
         self.actor_logstd = nn.Parameter(torch.ones(1, np.prod(envs.single_action_space.shape)) * -0.5)
 
+    def _pad_obs(self, x):
+        if self.actual_obs_dim < self.target_obs_dim:
+            # Add padding to match target dimension
+            if len(x.shape) == 2:  # Batch of observations
+                padding_size = (0, self.target_obs_dim - self.actual_obs_dim)
+                x = F.pad(x, padding_size, value=0)
+            elif len(x.shape) == 1:  # Single observation
+                padding_size = (0, self.target_obs_dim - self.actual_obs_dim)
+                x = F.pad(x.unsqueeze(0), padding_size, value=0).squeeze(0)
+        return x
     def get_value(self, x):
+        x = self._pad_obs(x)
         return self.critic(x)
     def get_action(self, x, deterministic=False):
+        x = self._pad_obs(x)
         action_mean = self.actor_mean(x)
         if deterministic:
             return action_mean
@@ -164,6 +178,7 @@ class Agent(nn.Module):
         probs = Normal(action_mean, action_std)
         return probs.sample()
     def get_action_and_value(self, x, action=None):
+        x = self._pad_obs(x)
         action_mean = self.actor_mean(x)
         action_logstd = self.actor_logstd.expand_as(action_mean)
         action_std = torch.exp(action_logstd)
