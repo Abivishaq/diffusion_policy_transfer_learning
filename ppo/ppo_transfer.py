@@ -162,7 +162,7 @@ class Agent(nn.Module):
         self.actor_logstd = nn.Parameter(torch.ones(1, np.prod(envs.single_action_space.shape)) * -0.5)
 
     def _pad_obs(self, x):
-         if self.actual_obs_dim < self.target_obs_dim:
+        if self.actual_obs_dim < self.target_obs_dim:
             # Pad the observation to match target dimension
             padding_size = (0, self.target_obs_dim - self.actual_obs_dim)
             if len(x.shape) == 2:  # Batch of observations
