@@ -135,6 +135,10 @@ class Agent(nn.Module):
         super().__init__()
         self.target_obs_dim = 42  # The larger dimension we're padding to
         self.actual_obs_dim = np.array(envs.single_observation_space.shape).prod()
+        print(f"Initializing Agent with:")
+        print(f"- Target observation dim: {self.target_obs_dim}")
+        print(f"- Actual observation dim: {self.actual_obs_dim}")
+        print(f"- Environment observation space: {envs.single_observation_space}")
         self.critic = nn.Sequential(
             #layer_init(nn.Linear(np.array(envs.single_observation_space.shape).prod(), 256)),
             layer_init(nn.Linear(self.target_obs_dim, 256)),  # Using target_obs_dim here
@@ -205,6 +209,14 @@ def setup_transfer_learning(agent: Agent, args: Args) -> None:
     if args.source_checkpoint:
         # Load source task weights
         source_state_dict = torch.load(args.source_checkpoint)
+        print("\nLoading checkpoint:")
+        print("Source state dict keys and shapes:")
+        for k, v in source_state_dict.items():
+            print(f"- {k}: {v.shape}")
+            
+        print("\nCurrent model state dict keys and shapes:")
+        for k, v in agent.state_dict().items():
+            print(f"- {k}: {v.shape}")
         
         if args.transfer_mode == "full":
             # Load all weights
@@ -303,6 +315,9 @@ if __name__ == "__main__":
         print("Running evaluation")
 
     agent = Agent(envs).to(device)
+    print("\nBefore loading checkpoint:")
+    for name, param in agent.named_parameters():
+        print(f"- {name}: {param.shape}")
 
     ### Add transfer learning setup here if source checkpoint is provided
     if args.source_checkpoint:
