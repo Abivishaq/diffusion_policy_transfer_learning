@@ -3,7 +3,7 @@ import os
 import random
 import time
 from dataclasses import dataclass
-from typing import Optional
+from typing import Optional, List
 
 import gymnasium as gym
 import numpy as np
