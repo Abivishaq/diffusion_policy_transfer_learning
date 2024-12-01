@@ -169,7 +169,7 @@ class Agent(nn.Module):
                 x = F.pad(x, padding_size, value=0)
             elif len(x.shape) == 1:  # Single observation
                 x = F.pad(x.unsqueeze(0), padding_size, value=0).squeeze(0)
-        return x
+        return x  # This should be at the same level as the first if
     def get_value(self, x):
         x = self._pad_obs(x)
         return self.critic(x)
