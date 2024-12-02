@@ -1,12 +1,12 @@
 #!/bin/bash
 
-NUM_DEMOS=50
+NUM_DEMOS=25
 
 python train_transfer.py --env-id PushCube-v1 \
     --demo-path ~/.maniskill/demos/PushCube-v1/motionplanning/trajectory.state.pd_ee_delta_pos.cpu.h5   \
     --control-mode "pd_ee_delta_pos" --sim-backend "cpu" \
-    --num-demos $NUM_DEMOS --max_episode_steps 100 \
-    --total_iters 30000 --seed 2
+    --num-demos 25 --max_episode_steps 100 \
+    --total_iters 30000 --seed 10
 
 python train_transfer.py --env-id PushCube-v1   \
     --demo-path ~/.maniskill/demos/PushCube-v1/motionplanning/trajectory.state.pd_ee_delta_pos.cpu.h5   \
