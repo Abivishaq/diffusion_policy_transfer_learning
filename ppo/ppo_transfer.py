@@ -3,7 +3,7 @@ import os
 import random
 import time
 from dataclasses import dataclass
-from typing import Optional
+from typing import Optional, List
 
 import gymnasium as gym
 import numpy as np
@@ -133,8 +133,15 @@ def layer_init(layer, std=np.sqrt(2), bias_const=0.0):
 class Agent(nn.Module):
     def __init__(self, envs):
         super().__init__()
+        self.target_obs_dim = 42  # The larger dimension we're padding to
+        self.actual_obs_dim = np.array(envs.single_observation_space.shape).prod()
+        print(f"Initializing Agent with:")
+        print(f"- Target observation dim: {self.target_obs_dim}")
+        print(f"- Actual observation dim: {self.actual_obs_dim}")
+        print(f"- Environment observation space: {envs.single_observation_space}")
         self.critic = nn.Sequential(
-            layer_init(nn.Linear(np.array(envs.single_observation_space.shape).prod(), 256)),
+            #layer_init(nn.Linear(np.array(envs.single_observation_space.shape).prod(), 256)),
+            layer_init(nn.Linear(self.target_obs_dim, 256)),  # Using target_obs_dim here
             nn.Tanh(),
             layer_init(nn.Linear(256, 256)),
             nn.Tanh(),
@@ -143,7 +150,8 @@ class Agent(nn.Module):
             layer_init(nn.Linear(256, 1)),
         )
         self.actor_mean = nn.Sequential(
-            layer_init(nn.Linear(np.array(envs.single_observation_space.shape).prod(), 256)),
+            #layer_init(nn.Linear(np.array(envs.single_observation_space.shape).prod(), 256)),
+            layer_init(nn.Linear(self.target_obs_dim, 256)),  # Using target_obs_dim here
             nn.Tanh(),
             layer_init(nn.Linear(256, 256)),
             nn.Tanh(),
@@ -153,9 +161,20 @@ class Agent(nn.Module):
         )
         self.actor_logstd = nn.Parameter(torch.ones(1, np.prod(envs.single_action_space.shape)) * -0.5)
 
+    def _pad_obs(self, x):
+        if self.actual_obs_dim < self.target_obs_dim:
+            # Pad the observation to match target dimension
+            padding_size = (0, self.target_obs_dim - self.actual_obs_dim)
+            if len(x.shape) == 2:  # Batch of observations
+                x = F.pad(x, padding_size, value=0)
+            elif len(x.shape) == 1:  # Single observation
+                x = F.pad(x.unsqueeze(0), padding_size, value=0).squeeze(0)
+        return x  # This should be at the same level as the first if
     def get_value(self, x):
+        x = self._pad_obs(x)
         return self.critic(x)
     def get_action(self, x, deterministic=False):
+        x = self._pad_obs(x)
         action_mean = self.actor_mean(x)
         if deterministic:
             return action_mean
@@ -164,6 +183,7 @@ class Agent(nn.Module):
         probs = Normal(action_mean, action_std)
         return probs.sample()
     def get_action_and_value(self, x, action=None):
+        x = self._pad_obs(x)
         action_mean = self.actor_mean(x)
         action_logstd = self.actor_logstd.expand_as(action_mean)
         action_std = torch.exp(action_logstd)
@@ -189,6 +209,14 @@ def setup_transfer_learning(agent: Agent, args: Args) -> None:
     if args.source_checkpoint:
         # Load source task weights
         source_state_dict = torch.load(args.source_checkpoint)
+        print("\nLoading checkpoint:")
+        print("Source state dict keys and shapes:")
+        for k, v in source_state_dict.items():
+            print(f"- {k}: {v.shape}")
+            
+        print("\nCurrent model state dict keys and shapes:")
+        for k, v in agent.state_dict().items():
+            print(f"- {k}: {v.shape}")
         
         if args.transfer_mode == "full":
             # Load all weights
@@ -287,6 +315,9 @@ if __name__ == "__main__":
         print("Running evaluation")
 
     agent = Agent(envs).to(device)
+    print("\nBefore loading checkpoint:")
+    for name, param in agent.named_parameters():
+        print(f"- {name}: {param.shape}")
 
     ### Add transfer learning setup here if source checkpoint is provided
     if args.source_checkpoint:

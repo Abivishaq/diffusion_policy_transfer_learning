@@ -51,6 +51,13 @@ class Args:
     capture_video: bool = True
     """whether to capture videos of the agent performances (check out `videos` folder)"""
 
+    ckpt_path: Optional[str] = None
+    """Path to a specific checkpoint file to initialize the agent from"""
+
+    ckpt_tag: Optional[str] = None
+    """Tag to select a checkpoint (e.g., best_eval_success_at_end), used if ckpt_path is not directly provided"""
+
+
     env_id: str = "PegInsertionSide-v0"
     """the id of the environment"""
     demo_path: str = 'data/ms2_official_demos/rigid_body/PegInsertionSide-v0/trajectory.state.pd_ee_delta_pose.h5'
@@ -362,7 +369,12 @@ if __name__ == "__main__":
 
     ## laod checkpoint
     # ckpt_pth = '/home/abivishaq/projects/GT_coursework/fall_2024/DL/ManiSkill/examples/baselines/diffusion_policy/runs/PickCube-v1__train__1__1732827903/checkpoints/best_eval_success_at_end.pt'
-    ckpt_pth = get_ckpt_pth(args.num_demos)
+    if args.ckpt_path is not None:
+        ckpt_pth = args.ckpt_path
+    elif args.ckpt_tag is not None:
+        ckpt_pth = f"runs/{args.env_id}__train__{args.seed}__/checkpoints/{args.ckpt_tag}.pt"
+    else:
+        ckpt_pth = get_ckpt_pth(args.num_demos)  # default behavior
     print("####################")
     print(ckpt_pth)
     print("num_demos: ", args.num_demos)
