@@ -4,12 +4,13 @@ import random
 import time
 from dataclasses import dataclass
 from typing import Optional, List
-
+  
 import gymnasium as gym
 import numpy as np
 import torch
 import torch.nn as nn
 import torch.optim as optim
+import torch.nn.functional as F
 import tyro
 from torch.distributions.normal import Normal
 from torch.utils.tensorboard import SummaryWriter
@@ -223,12 +224,17 @@ def setup_transfer_learning(agent: Agent, args: Args) -> None:
             agent.load_state_dict(source_state_dict)
         
         elif args.transfer_mode == "partial":
-            # Load specific layers
+            # Only transfer middle and later layers
             current_state_dict = agent.state_dict()
-            filtered_state_dict = {k: v for k, v in source_state_dict.items() 
-                                 if not any(skip in k for skip in (args.reinit_layers or []))}
-            current_state_dict.update(filtered_state_dict)
+            transferable_state_dict = {k: v for k, v in source_state_dict.items() 
+                                     if not any(x in k for x in ['0.weight', '0.bias'])}  # Skip first layers
+            current_state_dict.update(transferable_state_dict)
             agent.load_state_dict(current_state_dict)
+            
+            # Freeze middle layers but keep first and last layers trainable
+            for name, param in agent.named_parameters():
+                if '0.' not in name and '6.' not in name:  # Don't freeze first and last layers
+                    param.requires_grad = False
         
         elif args.transfer_mode == "features_only":
             # Load and freeze feature extraction layers (first few layers)
